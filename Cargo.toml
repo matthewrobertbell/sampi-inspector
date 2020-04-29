@@ -1,0 +1,27 @@
+[package]
+name = "sampi-inspector"
+version = "0.1.0"
+authors = ["The wasm-bindgen Developers"]
+edition = "2018"
+
+[lib]
+crate-type = ["cdylib"]
+
+[dependencies]
+wasm-bindgen = { version = "0.2.37", features = ["serde-serialize"]}
+sampi = { version = "0.1.29", features=["wasm"]}
+console_error_panic_hook = "0.1.6"
+
+[dependencies.web-sys]
+version = "0.3.4"
+features = [
+  'Document',
+  'Element',
+  'HtmlElement',
+  'Node',
+  'Window',
+]
+
+[profile.release]
+opt-level = 's'
+lto = true

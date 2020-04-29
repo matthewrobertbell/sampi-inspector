@@ -1,0 +1,177 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+  <meta name="description" content="">
+  <title>Sampi Inspector</title>
+
+  <link href="bootstrap.min.css" rel="stylesheet">
+  <script src="jquery-3.4.1.min.js"></script>
+  <script src="pkg/sampi_inspector.js"></script>
+
+  <script type=module>
+      function decode_display() {
+        $('#decode-table td').empty();
+        $('#decode-error').empty();
+        if ($('#decode-textarea').val().trim()) {
+          try {
+            var data = wasm_bindgen.sampi_decode($('#decode-textarea').val().trim());
+            $('#td_unix_time').text(data['unix_time']);
+            var ms = Date.now() - data['unix_time'];
+            if (ms > 86400000) {
+              $('#td_age').text(Math.floor(ms / 86400000).toString() + ' Days');
+            }
+            else if (ms > 3600000) {
+              $('#td_age').text(Math.floor(ms / 3600000).toString() + ' Hours');
+            }
+            else if (ms > 60000) {
+              $('#td_age').text(Math.floor(ms / 60000).toString() + ' Minutes');
+            }
+            else {
+              $('#td_age').text(Math.floor(ms / 1000).toString() + ' Seconds');
+            }
+
+            $('#td_data_string').text(data['data_string']);
+            $('#td_data_variant').text(data['data_variant']);
+            $('#td_public_key').text(data['public_key']);
+            $('#td_metadata').text(data['metadata']);
+            $('#td_pow_score').text(data['pow_score']);
+            $('#td_hash').text(data['hash']);
+            $('#td_data_hex').text(data['data_hex']);
+            $('#td_data_len').text(data['data_len']);
+          }
+          catch(error) {
+            $('#decode-error').text(error);
+          }
+        }
+      }
+
+      $(document).ready(async function() {
+          await wasm_bindgen('./pkg/sampi_inspector_bg.wasm');
+
+          if (window.location.hash) {
+            $('#decode-textarea').val(window.location.hash.substring(1));
+          }
+
+          decode_display();
+
+          $('#decode-textarea').bind('input propertychange', function() {
+            decode_display();
+          });
+
+          $('#encode-submit').click(function(e) {
+              e.preventDefault();
+              try {
+                var result = wasm_bindgen.sampi_encode($('#encode-data').val(), $('#encode-hex-output').prop('checked'));
+                $('#encode-result').text(result);
+                $.post("http://localhost:5842/", decodeURIComponent($.param({'data': [result]}))).done(function (data) {
+                  console.log(data);
+                });
+              }
+              catch(error) {
+                $('#encode-result').text('Error: ' + error);
+              }
+          });
+
+          $("#copy-button").click(function(e) {
+              e.preventDefault();
+              $("#encode-result").select();
+              document.execCommand('copy');
+          });
+      });
+   </script>
+</head>
+<body>
+
+<div class="pricing-header px-3 py-3 pt-md-5 pb-md-4 mx-auto text-center">
+  <h1 class="display-4">Sampi Inspector</h1>
+</div>
+
+<div class="container">
+  <div class="row">
+    <div class="col-md-12">
+      <h3>Decode</h3>
+      <form>
+        <div class="form-group">
+          <label for="decode-textarea" jid="decode-error"></label>
+          <textarea class="form-control" id="decode-textarea" rows="3"></textarea>
+        </div>
+      </form>
+
+      <div class="table-responsive">
+        <table class="table table-striped" id="decode-table">
+          <tbody>
+            <tr>
+              <th scope="row">String Data</th>
+              <td id="td_data_string"></td>
+            </tr>
+            <tr>
+              <th scope="row">Data Variant</th>
+              <td id="td_data_variant"></td>
+            </tr>
+            <tr>
+              <th scope="row">Data Length in Bytes</th>
+              <td id="td_data_len"></td>
+            </tr>
+            <tr>
+              <th scope="row">Unix Time</th>
+              <td id="td_unix_time"></td>
+            </tr>
+            <tr>
+              <th scope="row">Age</th>
+              <td id="td_age"></td>
+            </tr>
+            <tr>
+              <th scope="row">Public Key</th>
+              <td id="td_public_key"></td>
+            </tr>
+            <tr>
+              <th scope="row">Proof of Work Score</th>
+              <td id="td_pow_score"></td>
+            </tr>
+            <tr>
+              <th scope="row">Hash</th>
+              <td id="td_hash"></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <hr>
+
+      <h3>Encode</h3>
+
+      <form>
+        <div class="form-group">
+          <label for="encode-data">Data</label>
+          <textarea class="form-control" id="encode-data" rows="3"></textarea>
+        </div>
+        <div class="form-check">
+          <input class="form-check-input" type="checkbox" value="" id="encode-hex-output">
+          <label class="form-check-label" for="encode-hex-output">
+            Output as Hex
+          </label>
+        </div>
+        <button type="submit" class="btn btn-primary" id="encode-submit">Encode</button>
+        <button type="submit" class="btn btn-primary" id="copy-button">Copy Result</button>
+      </form>
+
+      <div class="form-group">
+        <label for="encode-data">Result</label>
+        <textarea class="form-control" readonly id="encode-result" rows="3"></textarea>
+      </div>
+
+    </div>
+  </div>
+
+  <footer class="pt-4 my-md-5 pt-md-5 border-top">
+    <div class="row">
+      <div class="col-md">
+        <small class="d-block mb-3 text-muted">&copy; 2019</small>
+      </div>
+    </div>
+  </footer>
+</div>
+</body>
+</html>
